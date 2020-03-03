@@ -5,7 +5,7 @@
 # Vagrant
 .vagrant/
 
-.png
+*.png
 
 # Mac/OSX
 .DS_Store
