@@ -1,6 +1,3 @@
-import numpy as np 
-from math import inf as infinity
-import pdb
 from Q_Learning import *
 
 #HYPERPARAMETERS IN Q-LEARNING. RUN CODE IN TEST.
@@ -53,21 +50,16 @@ class TicTacToe(object):
 
     def reset(self):
         self.game_state = [[' ',' ',' '],[' ',' ',' '],[' ',' ',' ']]
-        current_state = "Not Done"
-
-        # self.print_board()
 
         self.last_state = None
         self.last_action = None
         self.last_board = None
 
-        winner = None
-        current_player_idx = 0
 
         return self.convert_state()
 
 
-    def step(self, action, default_strat=True, learning=True, display=False, bot_train=True):
+    def step(self, action, display=False, bot_train=True):
         #action must be valid and must be numbered  0 through 8.
         #convert accordingly. Additionally write script in the
         #training/inference loop to make sure action is valid, i.e
@@ -78,7 +70,7 @@ class TicTacToe(object):
         if display:
             self.print_board()
         #Opponent plays action
-        block_choice = self.getOpponentMove(self.game_state,"O", default_strat=default_strat, learning=learning, bot_train=bot_train)
+        block_choice = self.getOpponentMove(self.game_state, bot_train=bot_train)
 
         if block_choice != -10 and block_choice != 10 and block_choice != 0:
             self.play_move('O', block_choice)
@@ -100,7 +92,6 @@ class TicTacToe(object):
     def rew_calc(self):
         reward = 0
         done = False
-        current_state = "Not Done"
 
         winner, current_state = self.check_current_state(self.game_state)
 
@@ -140,84 +131,45 @@ class TicTacToe(object):
 
 
 
-    def getOpponentMove(self, state,player, default_strat=True, learning=True, bot_train=True):
+    def getOpponentMove(self, state, bot_train=True):
         winner_loser , done = self.check_current_state(state)
         if done == "Done" and winner_loser == 'O': # If Opponent won
-            if not default_strat:
-                self.qlearning.update(self.last_state, self.last_action, 10, None, True, self.agent_state, agent=False)
+            if bot_train:
+                self.qlearning.update(self.last_state, self.last_action, 10, None, True, self.agent_state)
             return 10
         elif done == "Done" and winner_loser == 'X': # If Human won
-            if not default_strat:
-                self.qlearning.update(self.last_state, self.last_action, -10, None, True, self.agent_state, agent=False)
+            if bot_train:
+                self.qlearning.update(self.last_state, self.last_action, -10, None, True, self.agent_state)
             return -10
         elif done == "Draw":    # Draw condition
-            if not default_strat:
-                self.qlearning.update(self.last_state, self.last_action, 0, None, True, self.agent_state, agent=False)
+            if bot_train:
+                self.qlearning.update(self.last_state, self.last_action, 0, None, True, self.agent_state)
             return 0
         reward = 0
 
-        if not default_strat:
 
-            state = discretized_state(self)
-            if self.last_state != None:
-                self.qlearning.update(self.last_state, self.last_action, reward, state, False, self.agent_state, agent=False)
+        state = discretized_state(self)
+        if self.last_state != None:
+            self.qlearning.update(self.last_state, self.last_action, reward, state, False, self.agent_state)
 
-            max_next_action, _ = optimal_policy(self.qlearning.Q, state, self.agent_state, agent=False)
-            legal_action_mask = legal_actions(self.agent_state)
+        max_next_action, _ = optimal_policy(self.qlearning.Q, state, self.agent_state)
+        legal_action_mask = legal_actions(self.agent_state)
 
-            if learning and bot_train:
-                #Epsilon greedy policy
-                actions = [action for action in list(range(9)) if legal_action_mask[action]]
-                random_action = np.random.choice(actions)
-                action = np.random.choice([max_next_action, random_action], p=[1 - self.eps, self.eps])
-            else:
-                action = max_next_action
-
-
-
-            self.last_state = state
-            self.last_action = action
-            self.last_board = self.agent_state.copy()
-            return action + 1
-
+        if bot_train:
+            #Epsilon greedy policy
+            actions = [action for action in list(range(9)) if legal_action_mask[action]]
+            random_action = np.random.choice(actions)
+            action = np.random.choice([max_next_action, random_action], p=[1 - self.eps, self.eps])
         else:
-            moves = []
-            empty_cells = []
-            for i in range(3):
-                for j in range(3):
-                    if state[i][j] is ' ':
-                        empty_cells.append(i*3 + (j+1))
+            action = max_next_action
 
-            for empty_cell in empty_cells:
-                move = {}
-                move['index'] = empty_cell
-                new_state = self.copy_game_state(state) #hallucinate through states
-                self.play_move_hallucinate(new_state, player, empty_cell)
-                if player == 'O':    # If Opponent
-                    result = self.getOpponentMove(new_state, 'X')    # make more depth tree for human
-                    move['score'] = result
-                else:
-                    result = self.getOpponentMove(new_state, 'O')    # make more depth tree for Opponent
-                    move['score'] = result
 
-                moves.append(move)
 
-            # Find best move
-            best_move = None
-            if player == 'O':   # If Opponent player
-                best = -infinity
-                for move in moves:
-                    if move['score'] > best:
-                        best = move['score']
-                        best_move = move['index']
-            else:
-                best = infinity
-                for move in moves:
-                    if move['score'] < best:
-                        best = move['score']
-                        best_move = move['index']
+        self.last_state = state
+        self.last_action = action
+        self.last_board = self.agent_state.copy()
+        return action + 1
 
-            return best_move
 
     def copy_game_state(self,state):
         new_state = [[' ',' ',' '],[' ',' ',' '],[' ',' ',' ']]

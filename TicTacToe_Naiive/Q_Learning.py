@@ -3,8 +3,9 @@ import operator
 
 #HYPERPARAMETERS IN Q-LEARNING. RUN CODE IN TEST.PY
 #Hyperparameters
+num_runs = 20
 num_episodes = 100000
-qfunction_checkpoint = 10000
+qfunction_checkpoint = 20000
 gameplay_checkpoint = 10000
 display_games = False
 testing_iter = 1000
@@ -14,8 +15,6 @@ agent_eps = 1
 agent_alpha = .1
 env_eps = 1
 env_alpha = .1
-#no switching: training_switch=False but if switching: training_switch=int where int is how many episodes between switches
-training_switch = False
 load_bots = False
 save_bots = False
 
@@ -104,7 +103,7 @@ def evaluate_greedy_policy(qlearning, env, niter=100, display=True):
 			random_action = np.random.choice(actions)
 			action = np.random.choice([max_next_action, random_action], p=[1 - testing_eps, testing_eps])
 
-			dummy, reward, done = env.step(action + 1, learning=False, display=display)
+			dummy, reward, done = env.step(action + 1, bot_train=False, display=display)
 		if reward == 10:
 			num_wins += 1
 		elif reward == -10:
