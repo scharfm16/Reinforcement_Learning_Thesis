@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 #Hyperparameters
 alpha = .5
-num_episodes = 1001
+num_episodes = 500
 eps = 0.01
 testing_iter = 1000
 Map = MAP4
@@ -60,10 +60,9 @@ def evaluate_greedy_policy(qlearning, env, niter=100):
             next_state, reward, done = env.step(action)
 
             # Q update
-            action = qlearning.update(state, action, reward, next_state, done)
+            action, _ = optimal_policy(qlearning.Q, next_state)
 
-            state = next_state
-        if reward >= 90:
+        if reward == 100:
             num_succ += 1
     return 100 * num_succ/niter
 
@@ -71,15 +70,15 @@ def evaluate_greedy_policy(qlearning, env, niter=100):
 if __name__ == "__main__":
 
     env = GridWorld(Map)
-    qlearning = QLearning(env.get_num_states(), env.get_num_actions(), alpha=alpha)
-    returns_list = []
+    num_states = env.get_num_states()
+    qlearning = QLearning(num_states, env.get_num_actions(), alpha=alpha)
+    success_rate_list = []
     first_state_Qs = []
-    sum_of_100_returns = 0
-    episodes_to_save_Q = [0, 10, 100, 500, 1000]
 
-    for i in range(num_episodes):
+    episodes_to_save_Q = [0, 10, 100, 250, 500]
+    episodes_to_save_success_rate = list(range(0, num_episodes+1, 10))
+    for i in range(num_episodes + 1):
 
-        total_returns = 0
         done = False
         state = env.reset()
 
@@ -101,56 +100,36 @@ if __name__ == "__main__":
 
 
             state = next_state
-            total_returns += reward
 
-        returns_list.append(total_returns)
+        if i in episodes_to_save_Q:
+            currentQ_flattened = np.zeros((num_states))
+            for state in range(num_states):
+                currentQ_flattened[state] = np.max(qlearning.Q[state])
+            currentQ = currentQ_flattened.reshape((env.n_rows, env.n_cols)).round(decimals=2)
 
-        # # Code to save Q_Max at states on Map 4
-        # if i in episodes_to_save_Q:
-        #     flattened_max_Q = np.amax(qlearning.Q,axis=1)
-        #     max_Q = np.around(flattened_max_Q.reshape((env.n_rows, env.n_cols)))
+            for (m, l), label in np.ndenumerate(currentQ):
+                plt.text(l, m, label, ha='center', va='center')
+            plt.imshow(currentQ)
+            plt.savefig('results/QFunction/QFunction_After_{}_Episodes'.format(i))
 
-        #     for (m, l), label in np.ndenumerate(max_Q):
-        #         plt.text(l, m, label, ha='center', va='center')
-        #     plt.imshow(max_Q)
-        #     # plt.savefig('{}_Iterations.png'.format(i))
-        #     plt.show()
-        #     plt.close()
-
+            plt.show()
+            plt.close()
 
 
-    # print("Rolling out final policy")
-    # done = False
-    # state = env.reset()
-    # action, _ = optimal_policy(qlearning.Q, state)
-    #
-    # while not done:
-    #     next_state, reward, done = env.step(action)
-    #     action = qlearning.update(state, action, reward, next_state, done)
-    #     state = next_state
-    #     env.print()
-
-    # evaluate the greedy policy to see how well it performs
-    frac = evaluate_greedy_policy(qlearning, env, testing_iter)
-    print("Finding goal " + str(frac) + "% of the time.")
+        if i in episodes_to_save_success_rate:
+            print(i)
+            # evaluate the greedy policy to see how well it performs
+            frac = evaluate_greedy_policy(qlearning, env, testing_iter)
+            success_rate_list.append(frac)
+            print("Finding goal " + str(frac) + "% of the time.")
 
     #This code is for plotting returns of the training policy on map 3
-    plt.plot(range(num_episodes), returns_list)
-    plt.title('Q-Learning Training on Map4')
-    plt.ylabel('Returns')
-    plt.xlabel('Iterations')
-    plt.savefig('QLearning_Training_Map4.png')
+    plt.plot(range(len(success_rate_list)), success_rate_list)
+    plt.title('Q-Learning Training')
+    plt.ylabel('% Success w/ Optimal Policy')
+    plt.xlabel('Iterations in 10\'s')
+    plt.savefig('results/QLearning_Maze_Training.png')
 
-
-    # #This code is for plotting the q-value of the first state on map 2
-    # state = env.reset()
-    # optimal_first_state_Q = np.max(qlearning.Q[state])
-    # plt.plot(range(num_episodes), first_state_Qs, label='Q-value Training')
-    # plt.plot(range(num_episodes), [optimal_first_state_Q] * num_episodes, label='Optimal Q-value')
-    # plt.title('Starting State Q-Value on Map2')
-    # plt.ylabel('Q-Value of First State')
-    # plt.xlabel('Iterations')
-    # plt.legend(loc='best')
-    # # plt.savefig('Starting_State_QValue_Map2.png')
-    # plt.show()
+    plt.show()
+    plt.close()
 
