@@ -15,8 +15,6 @@ testing_eps = 0
 gamma = 1
 eps = 1
 alpha = .1
-#no switching: training_switch=False but if switching: training_switch=int where int is how many episodes between switches
-training_switch = False
 load_bots = False
 save_bots = False
 
