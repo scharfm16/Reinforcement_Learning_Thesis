@@ -67,153 +67,120 @@ def base10_state_to_board(n):
 def main():
     num_states = 3 ** 9
     num_actions = 9
-    returns_list = []
-    wins_list = []
-    losses_list = []
-    ties_list = []
-    sum_of_10000_returns = 0
-    env = TicTacToe()
-    qlearning = Minimax_QLearning(num_states, num_actions, alpha=alpha)
 
-    if load_bots:
-        qlearning.Q = np.load("saved_Q.npy")
+    wins_list = np.zeros((num_runs, num_episodes // gameplay_checkpoint + 1))
+    losses_list = np.zeros((num_runs, num_episodes // gameplay_checkpoint + 1))
+    ties_list = np.zeros((num_runs, num_episodes // gameplay_checkpoint + 1))
+    first_moves_across_runs = np.zeros((num_episodes // qfunction_checkpoint + 1, num_runs, 9))
+    second_moves_across_runs = np.zeros((num_episodes // qfunction_checkpoint + 1, num_runs, 9))
 
-    for i in range(num_episodes+1):
-        total_returns = 0
-        done = False
-        env.reset()
-        state = discretized_state(env)
+    for run in range(num_runs):
+        print("Run:", run+1)
+        env = TicTacToe()
+        qlearning = Minimax_QLearning(num_states, num_actions, alpha=alpha)
 
-        min_max_next_action, _ = optimal_policy(qlearning.Q, state, env.agent_state)
+        if load_bots:
+            qlearning.Q = np.load("saved_Q.npy")
 
-        while not done:
-            # print('state:', env.agent_state)
-        #Epsilon greedy policy
-            if min_max_next_action[1] == None:
-                action = min_max_next_action
-            else:
-                legal_action_mask = legal_actions(env.agent_state)
-                actions = list(zip(*np.nonzero(legal_action_mask)))
-                rand_action_idx = np.random.choice(len(actions))
-                random_action = actions[rand_action_idx]
-                chosen_action_index = np.random.choice([0,1], p=[1-eps,eps])
-                action = [min_max_next_action, random_action][chosen_action_index]
-            # print("action:", action)
-            #Step
-            dummy, reward, done = env.step(action)
+        for i in range(num_episodes+1):
 
-            next_state = discretized_state(env)
+            done = False
+            env.reset()
+            state = discretized_state(env)
 
-            #Q update
-            min_max_next_action = qlearning.update(state, action, reward, next_state, done, env.agent_state)
+            min_max_next_action, _ = optimal_policy(qlearning.Q, state, env.agent_state)
 
-            state = next_state
-            total_returns += reward
-        returns_list.append(total_returns)
+            while not done:
+                #Epsilon greedy policy
+                if min_max_next_action[1] == None:
+                    action = min_max_next_action
+                else:
+                    legal_action_mask = legal_actions(env.agent_state)
+                    actions = list(zip(*np.nonzero(legal_action_mask)))
+                    rand_action_idx = np.random.choice(len(actions))
+                    random_action = actions[rand_action_idx]
+                    chosen_action_index = np.random.choice([0,1], p=[1-eps,eps])
+                    action = [min_max_next_action, random_action][chosen_action_index]
+                # print("action:", action)
+                #Step
+                dummy, reward, done = env.step(action)
 
-        sum_of_10000_returns += total_returns
+                next_state = discretized_state(env)
 
-        # if (i + 1) % 10000 == 0:
-        # 	wins, losses, ties = evaluate_greedy_policy(qlearning, env, testing_iter, display=False)
-        # 	print('Iteration:', str(i + 1) + '/' + str(num_episodes))
-        # 	print("Wins: ", wins)
-        # 	wins_list.append(wins)
-        # 	print("Losses: ", losses)
-        # 	losses_list.append(losses)
-        # 	print('Ties:', ties)
-        # 	ties_list.append(ties)
-        #
-        #
-        # 	average_of_10000_returns = sum_of_10000_returns / 10000
-        # 	returns_list.append(average_of_10000_returns)
-        # 	print('Iteration:', str(i + 1) + '/' + str(num_episodes))
-        # 	print('Average Returns:', average_of_10000_returns)
-        # 	sum_of_10000_returns = 0
+                #Q update
+                min_max_next_action = qlearning.update(state, action, reward, next_state, done, env.agent_state)
+
+                state = next_state
 
 
 
-        # # Code to save Q_Max at states
-        # if i in episodes_to_save_Q:
-        # 	max_Q = np.around(np.amax(qlearning.Q,axis=1)).T
-        #
-        #
-        # 	print(max_Q[max_Q > 0])
-        # 	# plt.savefig('{}_Iterations.png'.format(i))
-        # 	# plt.show()
-        # 	# plt.close()
+            if i % qfunction_checkpoint == 0:
 
-        if i % qfunction_checkpoint == 0:
+                #Plotting the Q-Function for the first move
+                first_move_q = [np.nanmin(qlearning.Q[0][i][~i]) for i in range(9)]
+                first_moves_across_runs[i // qfunction_checkpoint][run] = np.asarray(first_move_q)
 
-            #Plotting the Q-Function for the first move
-            first_move_q = np.asarray([np.nanmin(qlearning.Q[0][i][~i]) for i in range(9)]).reshape((3,3)).round(decimals=2)
-            for (m, l), label in np.ndenumerate(first_move_q):
-                plt.text(l, m, label, ha='center', va='center')
-            plt.imshow(first_move_q)
-            plt.savefig('results/First_Move/First_Move_Q_at_{}_Episodes'.format(i))
+                # Plotting the Q function for the second move when the first person goes in the top left
+                second_move_q = [0]+[qlearning.Q[0][0][i] for i in range(1,9)]
+                second_moves_across_runs[i // qfunction_checkpoint][run] = -np.asarray(second_move_q)
 
-            if display_graphs:
-                plt.show()
-                plt.close()
+            if i % gameplay_checkpoint == 0:
+                # evaluate the greedy policy to see how well it performs
+                wins, losses, ties = evaluate_greedy_policy(qlearning, testing_iter, display=display_games)
+                print("Wins: ", wins)
+                wins_list[run][i // gameplay_checkpoint] = wins
+                print("Losses: ", losses)
+                losses_list[run][i // gameplay_checkpoint] = losses
+                print('Ties:', ties, '\n')
+                ties_list[run][i // gameplay_checkpoint] = ties
 
-            #Plotting the Q function for the second move when the first person goes in the top left
-            second_moves = -np.asarray([0]+[qlearning.Q[0][0][i] for i in range(1,9)]).reshape((3,3)).round(decimals=2)
-            for (m, l), label in np.ndenumerate(second_moves):
-                plt.text(l, m, label, ha='center', va='center')
-            plt.imshow(second_moves)
-            plt.savefig('results/Second_Move/Move_After_Top_Left_at_{}_Episodes'.format(i))
+        if save_bots:
+            np.save("saved_Q.npy", qlearning.Q)
 
-            if display_graphs:
-                plt.show()
-                plt.close()
+    print("Analyzing Results Over {} Runs:".format(num_runs))
+    for i in range(num_episodes // qfunction_checkpoint + 1):
 
-        if i % gameplay_checkpoint == 0:
-            # evaluate the greedy policy to see how well it performs
-            wins, losses, ties = evaluate_greedy_policy(qlearning, testing_iter,display=display_games)
-            print("Wins: ", wins)
-            wins_list.append(wins)
-            print("Losses: ", losses)
-            losses_list.append(losses)
-            print('Ties:', ties, '\n')
-            ties_list.append(ties)
+        first_moves_average = np.mean(first_moves_across_runs[i], axis=0).reshape((3, 3)).round(decimals=2)
+        for (m, l), label in np.ndenumerate(first_moves_average):
+            plt.text(l, m, label, ha='center', va='center')
+        plt.imshow(first_moves_average)
+        plt.savefig('results/First_Move/Average_First_Move_Q_at_{}_Episodes'.format(i * qfunction_checkpoint))
 
-    if save_bots:
-        np.save("saved_Q.npy", qlearning.Q)
+        if display_graphs:
+            plt.show()
+            plt.close()
 
-    #This code is for plotting returns of the training policy on map 3
+        second_moves_average = np.mean(second_moves_across_runs[i], axis=0).reshape((3, 3)).round(decimals=2)
+        for (m, l), label in np.ndenumerate(second_moves_average):
+            plt.text(l, m, label, ha='center', va='center')
+        plt.imshow(second_moves_average)
+        plt.savefig('results/Second_Move/Average_After_Top_Left_at_{}_Episodes'.format(i * qfunction_checkpoint))
+
+        if display_graphs:
+            plt.show()
+            plt.close()
+
+    average_wins = np.mean(wins_list, axis=0)
+    average_losses = np.mean(losses_list, axis=0)
+    average_ties = np.mean(ties_list, axis=0)
+
+    # This code is for plotting returns of the training policy on map 3
     plt.title('Minimax Q-Learning Test Runs')
     plt.ylabel('Percentage')
     plt.xlabel('Iterations in {}\'s'.format(gameplay_checkpoint))
-    plt.plot(range(len(wins_list)), wins_list, label='Wins')
-    plt.plot(range(len(losses_list)), losses_list, label='Losses')
-    plt.plot(range(len(ties_list)), ties_list, label='Ties')
+    plt.plot(range(len(average_wins)), average_wins, label='Wins')
+    plt.plot(range(len(average_losses)), average_losses, label='Losses')
+    plt.plot(range(len(average_ties)), average_ties, label='Ties')
     plt.legend(loc='best')
-    plt.savefig('results/Minimax_QLearning_Tic_Tac_Toe_Self_Play_X_Wins.png')
+    plt.savefig('results/Minimax_QLearning_Tic_Tac_Toe_Average_X_Wins.png')
 
     if display_graphs:
         plt.show()
         plt.close()
 
-    # #This code is for plotting returns of the training policy on map 3
-    # plt.title('Q-Learning Training Runs')
-    # plt.ylabel('Returns')
-    # plt.xlabel('Iterations')
-    # plt.plot(range(len(returns_list)), returns_list)
-    # # plt.savefig('QLearning_Training_Map3.png')
-    # plt.show()
 
 
-    # #This code is for plotting the q-value of the first state on map 2
-    # env.reset()
-    # state = discretized_state(env)
-    # optimal_first_state_Q = np.max(qlearning.Q[state])
-    # plt.plot(range(num_episodes), first_state_Qs, label='Q-value Training')
-    # plt.plot(range(num_episodes), [optimal_first_state_Q] * num_episodes, label='Optimal Q-value')
-    # plt.title('Starting State Q-Value on Map2')
-    # plt.ylabel('Q-Value of First State')
-    # plt.xlabel('Iterations')
-    # plt.legend(loc='best')
-    # # plt.savefig('Starting_State_QValue_Map2.png')
-    # plt.show()
+
 
 if __name__ == '__main__':
     main()

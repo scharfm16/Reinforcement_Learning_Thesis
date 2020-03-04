@@ -3,7 +3,7 @@ import operator
 
 #HYPERPARAMETERS IN Q-LEARNING. RUN CODE IN TEST.PY
 #Hyperparameters
-num_runs = 20
+num_runs = 3
 num_episodes = 100000
 qfunction_checkpoint = 20000
 gameplay_checkpoint = 10000
