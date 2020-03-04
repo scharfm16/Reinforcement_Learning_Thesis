@@ -8,6 +8,7 @@ num_episodes = 100000
 qfunction_checkpoint = 20000
 gameplay_checkpoint = 10000
 display_games = False
+display_graphs = True
 testing_iter = 1000
 testing_eps = 0
 gamma = 1

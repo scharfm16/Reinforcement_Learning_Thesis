@@ -36,8 +36,7 @@ def evaluate_greedy_policy(qlearning, niter=100, display=True):
 
             #Step
             dummy, reward, done = env.step(action)
-            if (np.sum(env.agent_state == 1) != np.sum(env.agent_state == 2)) and (done==False):
-                print('OH JEEZ OH BOI THIS IS A VERY BAD ERROR FIGURE OUT WHATS GOING ON PLS')
+
             if display:
                 print(env.agent_state)
             state = discretized_state(env)
@@ -79,7 +78,7 @@ def main():
     if load_bots:
         qlearning.Q = np.load("saved_Q.npy")
 
-    for i in range(1, num_episodes+1):
+    for i in range(num_episodes+1):
         total_returns = 0
         done = False
         env.reset()
@@ -103,13 +102,8 @@ def main():
             #Step
             dummy, reward, done = env.step(action)
 
-            if (np.sum(env.agent_state == 1) != np.sum(env.agent_state == 2)) and (done==False):
-                print('OH JEEZ OH BOI THIS IS A VERY BAD ERROR FIGURE OUT WHATS GOING ON PLS')
-
-            # print("reward", reward)
-            # print("done:",done)
             next_state = discretized_state(env)
-            # print("next state:",env.agent_state)
+
             #Q update
             min_max_next_action = qlearning.update(state, action, reward, next_state, done, env.agent_state)
 
@@ -148,9 +142,6 @@ def main():
         # 	# plt.show()
         # 	# plt.close()
 
-        if i % 1000 == 0:
-            print(i)
-
         if i % qfunction_checkpoint == 0:
 
             #Plotting the Q-Function for the first move
@@ -158,18 +149,22 @@ def main():
             for (m, l), label in np.ndenumerate(first_move_q):
                 plt.text(l, m, label, ha='center', va='center')
             plt.imshow(first_move_q)
-            plt.savefig('First_Move_Q_at_{}_Episodes'.format(i))
-            plt.show()
-            plt.close()
+            plt.savefig('results/First_Move/First_Move_Q_at_{}_Episodes'.format(i))
+
+            if display_graphs:
+                plt.show()
+                plt.close()
 
             #Plotting the Q function for the second move when the first person goes in the top left
             second_moves = -np.asarray([0]+[qlearning.Q[0][0][i] for i in range(1,9)]).reshape((3,3)).round(decimals=2)
             for (m, l), label in np.ndenumerate(second_moves):
                 plt.text(l, m, label, ha='center', va='center')
             plt.imshow(second_moves)
-            plt.savefig('Move_After_Top_Left_at_{}_Episodes'.format(i))
-            plt.show()
-            plt.close()
+            plt.savefig('results/Second_Move/Move_After_Top_Left_at_{}_Episodes'.format(i))
+
+            if display_graphs:
+                plt.show()
+                plt.close()
 
         if i % gameplay_checkpoint == 0:
             # evaluate the greedy policy to see how well it performs
@@ -178,7 +173,7 @@ def main():
             wins_list.append(wins)
             print("Losses: ", losses)
             losses_list.append(losses)
-            print('Ties:', ties)
+            print('Ties:', ties, '\n')
             ties_list.append(ties)
 
     if save_bots:
@@ -192,8 +187,11 @@ def main():
     plt.plot(range(len(losses_list)), losses_list, label='Losses')
     plt.plot(range(len(ties_list)), ties_list, label='Ties')
     plt.legend(loc='best')
-    plt.savefig('Minimax_QLearning_Tic_Tac_Toe_Self_Play_X_Wins.png')
-    plt.show()
+    plt.savefig('results/Minimax_QLearning_Tic_Tac_Toe_Self_Play_X_Wins.png')
+
+    if display_graphs:
+        plt.show()
+        plt.close()
 
     # #This code is for plotting returns of the training policy on map 3
     # plt.title('Q-Learning Training Runs')
