@@ -9,6 +9,7 @@ num_episodes = 500
 eps = 0.01
 testing_iter = 1000
 Map = MAP4
+num_runs = 20
 
 
 
@@ -71,60 +72,64 @@ if __name__ == "__main__":
 
     env = GridWorld(Map)
     num_states = env.get_num_states()
-    qlearning = QLearning(num_states, env.get_num_actions(), alpha=alpha)
-    success_rate_list = []
-    first_state_Qs = []
-
     episodes_to_save_Q = [0, 10, 100, 250, 500]
-    episodes_to_save_success_rate = list(range(0, num_episodes+1, 10))
-    for i in range(num_episodes + 1):
+    episodes_to_save_success_rate = list(range(0, num_episodes + 1, 10))
 
-        done = False
-        state = env.reset()
+    success_rate_list = np.zeros((num_runs, len(episodes_to_save_success_rate)))
+    first_state_Qs = np.zeros((len(episodes_to_save_Q), num_runs, num_states))
 
-        first_state_Q = np.max(qlearning.Q[state])
-        first_state_Qs.append(first_state_Q)
+    for run in range(num_runs):
+        print("Run:",run+1)
 
-        max_next_action, _ = optimal_policy(qlearning.Q, state)
-        while not done:
-
-            #Epsilon greedy policy
-            random_action = np.random.choice(env.get_num_actions())
-            action = np.random.choice([max_next_action, random_action], p= [1-eps, eps])
-
-            #Step
-            next_state, reward, done = env.step(action)
-
-            #Q update
-            max_next_action = qlearning.update(state, action, reward, next_state, done)
+        qlearning = QLearning(num_states, env.get_num_actions(), alpha=alpha)
 
 
-            state = next_state
+        for i in range(num_episodes + 1):
 
-        if i in episodes_to_save_Q:
-            currentQ_flattened = np.zeros((num_states))
-            for state in range(num_states):
-                currentQ_flattened[state] = np.max(qlearning.Q[state])
-            currentQ = currentQ_flattened.reshape((env.n_rows, env.n_cols)).round(decimals=2)
+            done = False
+            state = env.reset()
 
-            for (m, l), label in np.ndenumerate(currentQ):
-                plt.text(l, m, label, ha='center', va='center')
-            plt.imshow(currentQ)
-            plt.savefig('results/QFunction/QFunction_After_{}_Episodes'.format(i))
+            max_next_action, _ = optimal_policy(qlearning.Q, state)
+            while not done:
 
-            plt.show()
-            plt.close()
+                #Epsilon greedy policy
+                random_action = np.random.choice(env.get_num_actions())
+                action = np.random.choice([max_next_action, random_action], p= [1-eps, eps])
+
+                #Step
+                next_state, reward, done = env.step(action)
+
+                #Q update
+                max_next_action = qlearning.update(state, action, reward, next_state, done)
 
 
-        if i in episodes_to_save_success_rate:
-            print(i)
-            # evaluate the greedy policy to see how well it performs
-            frac = evaluate_greedy_policy(qlearning, env, testing_iter)
-            success_rate_list.append(frac)
-            print("Finding goal " + str(frac) + "% of the time.")
+                state = next_state
 
-    #This code is for plotting returns of the training policy on map 3
-    plt.plot(range(len(success_rate_list)), success_rate_list)
+            #Recording max qfunction
+            if i in episodes_to_save_Q:
+                first_state_Qs[episodes_to_save_Q.index(i), run] = np.max(qlearning.Q, axis=1)
+
+            #Recording the success rates
+            if i in episodes_to_save_success_rate:
+                # evaluate the greedy policy to see how well it performs
+                frac = evaluate_greedy_policy(qlearning, env, testing_iter)
+                success_rate_list[run][i//10] = frac
+
+    #PLotting average qfunction at each episode in 'episodes_to_save_Q'
+    for i in range(len(episodes_to_save_Q)):
+        currentQ = np.mean(first_state_Qs[i], axis=0).reshape((env.n_rows, env.n_cols)).round(decimals=2)
+
+        for (m, l), label in np.ndenumerate(currentQ):
+            plt.text(l, m, label, ha='center', va='center')
+        plt.imshow(currentQ)
+        plt.savefig('results/QFunction/QFunction_After_{}_Episodes'.format(episodes_to_save_Q[i]))
+
+        plt.show()
+        plt.close()
+
+    # Plotting average returns over all runs
+    success_rate_list_average = np.mean(success_rate_list, axis=0).round(decimals=2)
+    plt.plot(range(len(success_rate_list_average)), success_rate_list_average)
     plt.title('Q-Learning Training')
     plt.ylabel('% Success w/ Optimal Policy')
     plt.xlabel('Iterations in 10\'s')
@@ -132,4 +137,3 @@ if __name__ == "__main__":
 
     plt.show()
     plt.close()
-
