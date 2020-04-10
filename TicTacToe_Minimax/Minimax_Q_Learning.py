@@ -3,20 +3,32 @@ import operator
 import itertools
 
 #HYPERPARAMETERS IN Q-LEARNING. RUN CODE IN TEST.PY
+
 #Hyperparameters
-num_runs = 20
+#Number of times that full Q-Learning is run (results across runs are averaged)
+num_runs = 1
+#Number of episodes that Q-Learning will be run for
 num_episodes = 100000
+#Multiple of episodes at which qfunction is evaluated
 qfunction_checkpoint = 20000
+#Multiple of episodes at which gameplay is simulated
 gameplay_checkpoint = 10000
-display_games = False
-display_graphs = True
+#How many episodes to evaluate the policy after training
 testing_iter = 1000
+#Noise in policy for testing
 testing_eps = 0
+#Discount rate
 gamma = 1
+#Noise in policy for training
 eps = 1
+#Learning rate
 alpha = .1
+#Whether to load/save bot states in a local file
 load_bots = False
 save_bots = False
+#Display specifications
+display_games = False
+display_graphs = False
 
 #Retrieving the legal actions of the board
 def legal_actions(board):

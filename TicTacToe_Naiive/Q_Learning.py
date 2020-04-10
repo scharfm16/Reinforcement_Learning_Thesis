@@ -2,22 +2,36 @@ import numpy as np
 import operator
 
 #HYPERPARAMETERS IN Q-LEARNING. RUN CODE IN TEST.PY
+
 #Hyperparameters
+#Number of times that full Q-Learning is run (results across runs are averaged)
 num_runs = 20
+#Number of episodes that Q-Learning will be run for
 num_episodes = 100000
+#Multiple of episodes at which qfunction is evaluated
 qfunction_checkpoint = 20000
+#Multiple of episodes at which gameplay is simulated
 gameplay_checkpoint = 10000
-display_games = False
-display_graphs = True
+#How many episodes to evaluate the policy after training
 testing_iter = 1000
+#Noise in policy for testing
 testing_eps = 0
+#Discount rate
 gamma = 1
+#Noise in policy for Player 'X'
 agent_eps = 1
+#Learning rate for Player 'X'
 agent_alpha = .1
+#Noise in policy for Player 'O'
 env_eps = 1
+#Learning rate for Player 'O'
 env_alpha = .1
+#Whether to load/save bot states in a local file
 load_bots = False
 save_bots = False
+#Display specifications
+display_games = True
+display_graphs = True
 
 #Retrieving the legal actions of the board
 def legal_actions(board):
@@ -95,6 +109,9 @@ def evaluate_greedy_policy(qlearning, env, niter=100, display=True):
 		env.reset()
 		reward = 0
 
+		if display:
+			env.print_board()
+
 		while not done:
 			state = discretized_state(env)
 			max_next_action, _ = optimal_policy(qlearning.Q, state, env.agent_state)
@@ -105,6 +122,7 @@ def evaluate_greedy_policy(qlearning, env, niter=100, display=True):
 			action = np.random.choice([max_next_action, random_action], p=[1 - testing_eps, testing_eps])
 
 			dummy, reward, done = env.step(action + 1, bot_train=False, display=display)
+
 		if reward == 10:
 			num_wins += 1
 		elif reward == -10:

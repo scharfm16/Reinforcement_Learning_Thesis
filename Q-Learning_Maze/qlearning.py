@@ -4,14 +4,18 @@ import operator
 import matplotlib.pyplot as plt
 
 #Hyperparameters
+#Learning rate
 alpha = .5
+#Number of episodes to run q-learning
 num_episodes = 500
+#Noise in training policy
 eps = 0.01
+#How many episodes to evaluate the policy after training
 testing_iter = 1000
+#Choosing a map environment from selection of maps in 'tictactoe_env.py'
 Map = MAP4
+#Number of times that full Q-Learning is run (results across runs are averaged)
 num_runs = 20
-
-
 
 #Function which gives the best policy given a Q function
 def optimal_policy(Q, state):

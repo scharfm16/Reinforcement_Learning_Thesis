@@ -18,7 +18,7 @@ def evaluate_greedy_policy(qlearning, niter=100, display=True):
         state = discretized_state(env)
 
         if display:
-            print(env.agent_state)
+            env.print_board()
 
         while not done:
             min_max_next_action, _ = optimal_policy(qlearning.Q, state, env.agent_state)
@@ -35,10 +35,8 @@ def evaluate_greedy_policy(qlearning, niter=100, display=True):
                 action = [min_max_next_action, random_action][chosen_action_index]
 
             #Step
-            dummy, reward, done = env.step(action)
+            dummy, reward, done = env.step(action,display=display)
 
-            if display:
-                print(env.agent_state)
             state = discretized_state(env)
 
         if reward == 10:
